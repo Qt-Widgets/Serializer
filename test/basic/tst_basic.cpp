@@ -1,13 +1,14 @@
 #include <QtTest>
 
-#include <QPoint>
-#include <QDebug>
-#include <QVector>
-#include <QPolygon>
-#include <binaryserializer.h>
+#include <QtCore/QPoint>
+#include <QtCore/QDebug>
+#include <QtCore/QVector>
+#include "binaryserializer.h"
+#include "stringserializer.h"
 
 #ifdef QT_GUI_LIB
 #include <QtGui/QFont>
+#include <QtGui/QPolygon>
 #endif
 
 #include <stringserializer.h>
@@ -21,12 +22,13 @@ public:
     ~basic();
     void types(AbstractSerializer &ser);
 
-private slots:
+private Q_SLOTS:
     void initTestCase();
     void cleanupTestCase();
     void testString();
     void testBinary();
     void getString();
+    void doubleTest();
 };
 
 basic::basic()
@@ -61,6 +63,7 @@ void basic::testBinary()
     types(b);
 }
 
+#ifdef ENABLE_TEST_MACROS
 #define TEST(type, value) \
     do{ \
     v = QVariant(value); \
@@ -81,9 +84,15 @@ void basic::testBinary()
         qDebug() << v << deserialized; \
     QVERIFY2(deserialized == v, "verfy faild for" #type); \
     } while (false)
+#else
+#define TEST(type, value)
+#define TEST_NO_MSG(type, value)
+#endif
 
 void basic::types(AbstractSerializer &ser)
 {
+    Q_UNUSED(ser)
+
     QVariant v;
     QString tmp;
     QVariant deserialized;
@@ -150,6 +159,22 @@ void basic::getString()
     qDebug() << out;
     qDebug() << text;
     QVERIFY(out == "Hi this is \\\" sample");
+}
+
+void basic::doubleTest()
+{
+    StringSerializer s;
+    double d1 = 0.1 + .2;
+    double d2 = 1.0 / 7;
+    QPointF pt{d1, d2};
+    auto v = QVariant::fromValue(pt);
+    auto serializedd1 = s.toString(d1);
+    auto serializedd2 = s.toString(d2);
+    auto serializedPoint = s.toString(v);
+    qDebug() << serializedPoint;
+    QCOMPARE(serializedd1, QVariant::fromValue(d1).toString());
+    QCOMPARE(serializedd2, QVariant::fromValue(d2).toString());
+    QCOMPARE(serializedPoint, serializedd1 + QStringLiteral(",") + serializedd2);
 }
 
 QTEST_APPLESS_MAIN(basic)
